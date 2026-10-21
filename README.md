@@ -1,5 +1,6 @@
 ```markdown
-# ml-foundations
+
+## ml-foundations
 
 I am doing this from-scratch implementation of core ML engineering primitives in pure Python to refresh and keep sharp my understanding of ML/AI. 
 
@@ -18,19 +19,19 @@ This repo builds it from scratch, line by line, with full type hints, tests, and
 My goal is not to replace using PyTorch for this kind of task, but to understand it deeply enough that using it becomes trivial.
 
 ## Project Structure
+
 ```
 ├── dataloader
-│   ├── __init__.py             # public API surface
-│   └── core.py                 # DataLoader implementation
+│   ├── __init__.py        # public API surface
+│   └── core.py            # DataLoader implementation
 ├── examples
-│   └── quickstart.py           # runnable usage demo
-├── pyproject.toml              # package metadata
+│   └── quickstart.py      # runnable usage demo
+├── pyproject.toml         # package metadata
 ├── README.md
 ├── research-log
-│   └── 2026-10-21.md           # daily build notes
+│   └── 2026-10-21.md      # daily build notes
 └── tests
-    └── test_dataloader.py      # pytest test suite
-
+    └── test_dataloader.py # pytest test suite
 ```
 
 ## Installation
