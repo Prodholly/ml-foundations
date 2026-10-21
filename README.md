@@ -1,6 +1,4 @@
-```markdown
-
-## ml-foundations
+# ml-foundations
 
 I am doing this from-scratch implementation of core ML engineering primitives in pure Python to refresh and keep sharp my understanding of ML/AI. 
 
@@ -163,5 +161,5 @@ Emmanuel Adeloju — [github.com/Prodholly](https://github.com/Prodholly)
 ## License
 
 MIT
-```
+
 
