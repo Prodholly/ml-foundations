@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dataloader"
+version = "0.1.0"
+description = "Minimal typed DataLoader for ML training loops"
+requires-python = ">=3.10"
+dependencies = ["numpy"]
