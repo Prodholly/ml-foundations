@@ -8,3 +8,7 @@ version = "0.1.0"
 description = "Minimal typed DataLoader for ML training loops"
 requires-python = ">=3.10"
 dependencies = ["numpy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "2_linalg/linalg_test"]
+pythonpath = [".", "2_linalg"]
