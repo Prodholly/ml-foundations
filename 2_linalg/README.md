@@ -106,6 +106,10 @@ Read it as: `X` has axes `i, k`, `Y` has axes `k, j`, and the output keeps `i, j
 in the inputs but not in the output, einsum sums over it. That is the innermost loop above. The letters
 before the arrow are the loop variables, and the letters missing after the arrow are the ones being summed.
 
+`matmul` checks the inner dimensions first and raises a `ValueError` if they don't match, the same way
+`np.matmul` does. Without that check, `(3, 4) @ (2, 3)` would quietly use only part of `X` and return
+wrong numbers.
+
 ### Softmax (`softmax.py`, `einsum_softmax.py`)
 
 Turns a row of raw scores (logits) into probabilities that are all positive and sum to 1:
@@ -118,8 +122,10 @@ Before exponentiating, the max is subtracted. `exp(1000)` overflows to `inf`, bu
 answer if you shift every score by the same amount, so subtracting the max keeps the largest exponent
 at `exp(0) = 1`.
 
-`softmax_einsum` works on a `(samples, classes)` matrix and normalizes each row separately, so you get
-one probability distribution per sample.
+Both versions work on a `(samples, classes)` matrix and treat each row as its own sample. The max and the
+sum are taken per row (`axis=1, keepdims=True`), so you get one probability distribution per sample, and
+a row on a very different scale from the others can't underflow to `0 / 0`. `softmax` also accepts a
+single sample's 1D vector of class scores.
 
 ### Cross-entropy (`cross_entropy.py`)
 
@@ -157,27 +163,32 @@ pytest 2_linalg/linalg_test
 Expected output:
 
 ```
-6 passed in 0.xxs
+11 passed in 0.xxs
 ```
 
-Plain `pytest` from the repo root runs both Day 1 and Day 2 tests (12 total).
+Plain `pytest` from the repo root runs both Day 1 and Day 2 tests (17 total).
 
-## Known issues
+The tests use a seeded random generator, so a failure can be reproduced.
 
-These are documented, not fixed yet. See the research log for detail.
+## Bugs found and fixed
 
-- `softmax_einsum` subtracts the max of the whole matrix instead of each row's max. Rows with very
-  different scales can produce `nan`.
-- `softmax` in `softmax.py` normalizes over the whole array, so on a 2D input it is not a per-sample
-  softmax. The standalone demo in `cross_entropy.py` uses it, which inflates that demo's loss.
-- `matmul` does not check that the inner dimensions match. `(3, 4) @ (2, 3)` silently returns a wrong
-  `(3, 3)` result instead of raising an error.
+A review after the first version turned up three bugs. Each one now has a test that fails on the old
+code. The research log explains each in detail.
+
+- `softmax_einsum` subtracted the max of the whole matrix instead of each row's max, so rows on very
+  different scales produced `nan`.
+- `softmax` summed the whole array instead of each row, so on a 2D input the samples' probabilities
+  competed with each other. This inflated the loss in `cross_entropy.py`'s demo.
+- `matmul` never checked the inner dimensions, so `(3, 4) @ (2, 3)` silently returned a wrong `(3, 3)`
+  result.
 
 ## Concepts Covered
 
 | Concept | Location |
 |---|---|
 | Matrix shapes and the inner-dimension rule | `ops.py` |
+| Defensive validation | `ValueError` on mismatched shapes in `matmul` |
+| Per-row reductions with `axis` and `keepdims` | `softmax.py`, `einsum_softmax.py` |
 | Einstein summation notation | `einsum_matmul.py`, `einsum_softmax.py` |
 | Numerical stability (max subtraction, epsilon in log) | `softmax.py`, `cross_entropy.py` |
 | Logits, probabilities and one-hot targets | `einsum_softmax.py`, `cross_entropy.py` |

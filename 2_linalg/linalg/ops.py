@@ -7,6 +7,10 @@ import numpy as np
 
 
 def matmul(X, Y):
+    # the inner dimensions must match: (m, n) @ (n, p); without this check a mismatch silently gives wrong numbers
+    if X.shape[1] != Y.shape[0]:
+        raise ValueError(f"inner dimensions don't match: {X.shape} @ {Y.shape}")
+
     rows_X = X.shape[0] # this determines the rows of the output C
     cols_Y = Y.shape[1] # this determines the cols of the output C
     inner = Y.shape[0] # this is the inner dimensions which determines how many matching pairs are added

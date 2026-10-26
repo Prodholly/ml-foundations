@@ -1,18 +1,8 @@
 import numpy as np
 from numpy import einsum
 
-
-# original: manual three-loop matmul
-def matmul(X, Y):
-    rows_X = X.shape[0]
-    cols_Y = Y.shape[1]
-    inner  = Y.shape[0]
-    C = np.zeros((rows_X, cols_Y))
-    for i in range(rows_X):
-        for j in range(cols_Y):
-            for k in range(inner):
-                C[i, j] += X[i, k] * Y[k, j]
-    return C
+# original: manual three-loop matmul, imported so there is only one copy to keep correct
+from linalg.ops import matmul
 
 
 # einsum version which has same operation but in just one line

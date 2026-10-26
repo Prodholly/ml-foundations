@@ -1,18 +1,8 @@
 import numpy as np
 import time
 
-
 # Original loop-based matmul
-def matmul(X, Y):
-    rows_X = X.shape[0]
-    cols_Y = Y.shape[1]
-    inner  = Y.shape[0]
-    C = np.zeros((rows_X, cols_Y))
-    for i in range(rows_X):
-        for j in range(cols_Y):
-            for k in range(inner):
-                C[i, j] += X[i, k] * Y[k, j]
-    return C
+from linalg.ops import matmul
 
 
 # now lets create the benchmark

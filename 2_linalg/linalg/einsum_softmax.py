@@ -2,16 +2,13 @@ import numpy as np
 
 
 # Original softmax (for comparison)
-def softmax(z):
-    shifted = z - np.max(z)
-    exp_z = np.exp(shifted)
-    prob = exp_z / np.sum(exp_z)
-    return prob
+from linalg.softmax import softmax
 
 
 # einsum softmax
 def softmax_einsum(z):
-    exp_z = np.exp(z - np.max(z))
+    # subtract each row's own max; a single global max can push a whole row to exp() = 0 and give 0/0 = nan
+    exp_z = np.exp(z - np.max(z, axis=1, keepdims=True))
 
     # sum across classes (axis=1) → one total per sample
     row_sums = exp_z.sum(axis=1)  # shape: (3,)

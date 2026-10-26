@@ -2,31 +2,32 @@ import numpy as np
 
 
 # Softmax: convert logits to probabilities
+# works on one sample's scores (1D) or a batch with one row per sample (2D); always normalizes the last axis
 def softmax(z):
     # subtract max for numerical stability which prevents exp() from overflowing
     # result is mathematically identical, but safe for large values
-    shifted = z - np.max(z)
+    # axis=-1 takes each row's own max; keepdims=True keeps it shaped (rows, 1) so it lines up row by row
+    shifted = z - np.max(z, axis=-1, keepdims=True)
 
     # exponentiate every element
     exp_z = np.exp(shifted)
 
-    # divide each by the total so all probabilities sum to 1
-    prob = exp_z / np.sum(exp_z)
+    # divide each by its row's total so every sample's probabilities sum to 1
+    prob = exp_z / np.sum(exp_z, axis=-1, keepdims=True)
     return prob
 
 
 if __name__ == "__main__":
-    # lets simulate a small dataset and weights
-    # X: 3 samples, each with 4 features
-    X = np.random.rand(3, 4)
+    # lets simulate one sample and a small set of class weights
+    # x: 1 sample with 4 features
+    x = np.random.rand(4)
 
-    # w: 1 weight vector with 4 values (one per feature)
-    w = np.random.rand(1, 4)
+    # w: 3 weight vectors with 4 values each (one per class)
+    w = np.random.rand(3, 4)
 
     # Forward pass: compute raw scores (logits)
-    # w.T transposes w from (1,4) to (4,1) so dot product works
-    # z shape: (3,1) — one score per sample
-    z = np.dot(X, w.T)
+    # w @ x gives shape (3,) — one score per class for this sample
+    z = w @ x
     print("Logits:\n", z)
 
     probs = softmax(z)
