@@ -3,15 +3,19 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dataloader"
+name = "ml-foundations"
 version = "0.1.0"
-description = "Minimal typed DataLoader for ML training loops"
+description = "From-scratch implementations of core ML engineering primitives"
 requires-python = ">=3.10"
 dependencies = ["numpy", "pandas", "rich"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
 
+[tool.setuptools]
+packages = ["dataloader"]
+package-dir = {dataloader = "1_dataloader/dataloader"}
+
 [tool.pytest.ini_options]
-testpaths = ["tests", "2_linalg/linalg_test", "3_scidata/tests"]
-pythonpath = [".", "2_linalg", "3_scidata"]
+testpaths = ["1_dataloader/tests", "2_linalg/tests", "3_scidata/tests"]
+pythonpath = ["1_dataloader", "2_linalg", "3_scidata"]

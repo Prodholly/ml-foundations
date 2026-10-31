@@ -187,7 +187,7 @@ Expected output:
 8 passed in 0.xxs
 ```
 
-Plain `pytest` from the repo root runs all three days (25 tests in total).
+Plain `pytest` from the repo root runs the tests for every day.
 
 ## Known limitations
 

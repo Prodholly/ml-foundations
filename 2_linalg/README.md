@@ -29,23 +29,25 @@ then rewrote it as a single `einsum` line, then benchmarked both against `np.mat
 │   ├── einsum_softmax.py    # row-wise softmax using einsum
 │   ├── cross_entropy.py     # cross-entropy loss on one-hot targets
 │   └── benchmark.py         # loop vs einsum vs NumPy timing
-├── linalg_test
+├── research-log
+│   └── 2026-10-25.md        # daily build notes
+├── tests
 │   └── test_linalg.py       # pytest test suite
 └── README.md
 ```
 
-The day's build notes are in [`research-log/2026-10-25.md`](../research-log/2026-10-25.md) at the repo root.
+The full reasoning behind this build is in the [research log](research-log/2026-10-25.md).
 
 ## Installation
 
-Same setup as Day 1. The only dependency is NumPy.
+Run this from the repo root. It requires Python 3.10 or higher.
 
 ```bash
 git clone https://github.com/Prodholly/ml-foundations.git
 cd ml-foundations
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install -e ".[dev]"
 ```
 
 `linalg` is not installed as a package. The root `pyproject.toml` adds `2_linalg` to pytest's import
@@ -152,12 +154,42 @@ Times a 500x500 matrix multiply three ways. Results on my MacBook Air:
 Your numbers will differ by machine, but the order of magnitude will not. See the research log for why
 the gap is this large and why einsum lands in the middle.
 
+## Design decisions
+
+The main decisions are below. The [research log](research-log/2026-10-25.md) has the full reasoning.
+
+| Decision | Why |
+|---|---|
+| Write matmul as three loops first | Every multiply-add is visible, and the shape rule `(m, n) @ (n, p) -> (m, p)` follows from the loops |
+| Rewrite matmul with einsum | `'ik,kj->ij'` maps onto the three loops in one line, and the same notation carries through to batched matmul and attention |
+| Use einsum in softmax | Practice with a case where nothing is summed. Plain broadcasting is just as simple here |
+| Subtract the max before `exp` | `exp(1000)` overflows, and shifting every score by the same amount doesn't change softmax |
+| Move from a `(1, 4)` weight vector to a `(3, 4)` matrix | Classification needs one score per class for each sample, not one score per sample |
+| Store weights as `(classes, features)` and use `w.T` | Each row is one class's weights, which is also the convention in PyTorch's `nn.Linear` |
+| Add `1e-9` inside the log | It stops `log(0)` giving `-inf`, capping the worst case at about 20.7 |
+| Average the loss over the batch | With a sum, the loss and a good learning rate would both depend on batch size |
+| Benchmark on 500x500 matrices | Big enough that the arithmetic outweighs timer noise, small enough that the loop finishes in under a minute |
+
+## Challenges and fixes
+
+| Challenge | Fix |
+|---|---|
+| `softmax_einsum` subtracted the whole matrix's max, so rows on very different scales produced `nan` | Took each row's max with `axis=1, keepdims=True` |
+| `softmax` summed the whole array, so on a 2D input the samples' probabilities competed with each other and inflated the loss in `cross_entropy.py`'s demo | Took the max and sum over `axis=-1`, which works on 1D and 2D input |
+| `matmul` never checked the inner dimensions, so `(3, 4) @ (2, 3)` silently returned a wrong `(3, 3)` result | Raised a `ValueError` naming both shapes |
+| The loop `matmul` and `softmax` were copied between files, so each copy had the same bug | Kept one version of each and imported it |
+| The tests weren't seeded, so a failure couldn't be reproduced | Drew test inputs from `np.random.default_rng(0)` |
+| Importing a module ran its demo code | Put each demo under `if __name__ == "__main__":` |
+| Tests only passed from inside the folder | Added `pythonpath` and `testpaths` to the root `pyproject.toml` |
+
+Each of the three logic bugs now has a test that fails on the old code. The research log explains them in detail.
+
 ## Running the Tests
 
 From the repo root:
 
 ```bash
-pytest 2_linalg/linalg_test
+pytest 2_linalg/tests
 ```
 
 Expected output:
@@ -166,21 +198,9 @@ Expected output:
 11 passed in 0.xxs
 ```
 
-Plain `pytest` from the repo root runs both Day 1 and Day 2 tests (17 total).
+Plain `pytest` from the repo root runs the tests for every day.
 
 The tests use a seeded random generator, so a failure can be reproduced.
-
-## Bugs found and fixed
-
-A review after the first version turned up three bugs. Each one now has a test that fails on the old
-code. The research log explains each in detail.
-
-- `softmax_einsum` subtracted the max of the whole matrix instead of each row's max, so rows on very
-  different scales produced `nan`.
-- `softmax` summed the whole array instead of each row, so on a 2D input the samples' probabilities
-  competed with each other. This inflated the loss in `cross_entropy.py`'s demo.
-- `matmul` never checked the inner dimensions, so `(3, 4) @ (2, 3)` silently returned a wrong `(3, 3)`
-  result.
 
 ## Concepts Covered
 
