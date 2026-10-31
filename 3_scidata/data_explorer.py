@@ -68,10 +68,11 @@ def format_value(value):
 
 
 def print_table(rows):
-    table = Table(title="Data Profile")
+    table = Table(title="Data Profile", caption="this shows the output of your data",
+                  header_style="bold white on cyan")
 
     for name in ["Column", "Type", "Null%", "Unique", "Mean", "Std", "Min", "Max"]:
-        table.add_column(name)
+        table.add_column(name, style="cyan")
 
     keys = ["column", "dtype", "null_pct", "unique", "mean", "std", "min", "max"]
     for row in rows:
