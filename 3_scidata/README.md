@@ -139,7 +139,7 @@ The main decisions are below. The [research log](research-log/2026-10-31.md) has
 
 | Decision | Why |
 |---|---|
-| Keep `profile()` separate from the CLI | It can be tested with a hand-built DataFrame, and a bug clearly belongs to one side |
+| Keep `profile()` separate from the CLI | It can be tested with a hand-built DataFrame, and each file has one job, so the kind of bug tells me where to look: a wrong calculation or type label is in `profiler.py`, and a crash on a bad file, an argument problem or a display issue is in `data_explorer.py` |
 | Return a list of dicts | One dict is one table row, and each value is labelled by its key |
 | Use `number`, `text`, `date` and `empty` | They describe what a column means, not how pandas stores it (dates load as `str`, integers with blanks as `float64`) |
 | Check for empty columns first | An all-blank column loads as `float64`, so it would pass the numeric check and give `nan` |
