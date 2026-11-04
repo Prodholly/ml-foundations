@@ -17,6 +17,7 @@ This is a 115-day ML engineering curriculum. Each day has its own folder with th
 | 1 | [DataLoader](1_dataloader/) | Batching, shuffling and collation with a Python generator | [Research log](1_dataloader/research-log/2026-10-21.md) |
 | 2 | [Linear Algebra for ML](2_linalg/) | Matmul, einsum, softmax, cross-entropy and a speed benchmark | [Research log](2_linalg/research-log/2026-10-25.md) |
 | 3 | [Scientific Data Explorer](3_scidata/) | A CLI tool that profiles any CSV or TSV file | [Research log](3_scidata/research-log/2026-10-31.md) |
+| 4 | [Python Data Structures & Complexity](4_utils/) | Typed utility functions with edge cases, complexity analysis and tests | [Research log](4_utils/research-log/2026-11-04.md) |
 
 Upcoming builds include a training loop, autograd engine, attention mechanism, and transformer from scratch.
 
