@@ -1,0 +1,15 @@
+from .shapes import (
+    add_bias,
+    axis_demo,
+    benchmark_demo,
+    broadcast_demo,
+    inspect_tensor,
+    loop_elementwise_mult,
+    loop_row_mean,
+    numpy_elementwise_mult,
+    numpy_row_mean,
+    outer_add,
+    reduce_and_annotate,
+    reshape_demo,
+    shape_demo,
+)

@@ -18,6 +18,7 @@ This is a 115-day ML engineering curriculum. Each day has its own folder with th
 | 2 | [Linear Algebra for ML](2_linalg/) | Matmul, einsum, softmax, cross-entropy and a speed benchmark | [Research log](2_linalg/research-log/2026-10-25.md) |
 | 3 | [Scientific Data Explorer](3_scidata/) | A CLI tool that profiles any CSV or TSV file | [Research log](3_scidata/research-log/2026-10-31.md) |
 | 4 | [Python Data Structures & Complexity](4_utils/) | Typed utility functions with edge cases, complexity analysis and tests | [Research log](4_utils/research-log/2026-11-04.md) |
+| 5 | [NumPy Arrays, Shapes & Broadcasting](5_shape_inspect/) | Shape inspection, reshape, axis reductions, broadcasting, a loop vs NumPy benchmark, and generated figures | [Research log](5_shape_inspect/research-log/2026-11-05.md) |
 
 Upcoming builds include a training loop, autograd engine, attention mechanism, and transformer from scratch.
 
