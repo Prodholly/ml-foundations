@@ -17,5 +17,5 @@ packages = ["dataloader"]
 package-dir = {dataloader = "1_dataloader/dataloader"}
 
 [tool.pytest.ini_options]
-testpaths = ["1_dataloader/tests", "2_linalg/tests", "3_scidata/tests", "4_utils/tests", "5_shape_inspect/tests"]
-pythonpath = ["1_dataloader", "2_linalg", "3_scidata", "4_utils", "5_shape_inspect"]
+testpaths = ["1_dataloader/tests", "2_linalg/tests", "3_scidata/tests", "4_utils/tests", "5_shape_inspect/tests", "6_grad_check/tests"]
+pythonpath = ["1_dataloader", "2_linalg", "3_scidata", "4_utils", "5_shape_inspect", "6_grad_check"]
