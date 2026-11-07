@@ -17,50 +17,57 @@ that caused it.** Everything in today's build is that sentence turned into code.
 
 ![circle area](figures/circle_area.gif)
 
-Each ring at radius `r` is about `2πr` long and `dr` thick. Unrolled, the rings stack into a triangle of area
-`½ · R · 2πR = πR²`. Read backwards, the area grows by `2πr` per unit of radius: `dA/dr = 2πr`.
+Cut a circle into thin rings, then cut each ring at the bottom and straighten it out. A ring at radius `r` becomes
+a strip about `2πr` tall and `dr` wide. Laid side by side, the strips form a triangle: `½ · R · 2πR = πR²`.
 
-The last part of the animation shows the formula I'll use all day. Instead of nudging `r` one way, nudge it
-both ways and take the band between `r − h` and `r + h`:
+Read the other way, adding one more ring adds `2πr · dr` of area, so `dA/dr = 2πr`. The last part of the
+animation nudges `r` both ways and measures the band between `r − h` and `r + h`:
 
 $$\frac{A(r+h) - A(r-h)}{2h}$$
 
-For a circle this gives exactly `2πr` for every `h`. The one-sided version, `(A(r+h) − A(r)) / h`, is off by `πh`.
+For a circle this is exactly `2πr` at every `h`. The one-sided version, `(A(r+h) − A(r)) / h`, is off by `πh`.
 
 ### 2. My note, animated
 
 ![area under x squared](figures/area_under_x2.gif)
 
-The green sliver isn't quite a rectangle. The red bit on top is the error, and it shrinks like `δx²`, faster
-than the sliver itself, so it vanishes in the limit. Watch the error readout: the one-sided estimate is off by
-about `x·h`, and the centered one by only `h²/3`.
+The sliver is almost a rectangle `x²` tall. The red bit on top is what the rectangle misses, and it shrinks like
+`δx²`, faster than the sliver, so `δA / δx → x²`. The panel on the right tracks the estimate as `h` shrinks.
 
-### 3. Why centered beats one-sided
+Then the centered version. The rectangle now misses a bit on the right (red) but counts a bit too much on the
+left (purple), and the two nearly cancel. The one-sided estimate crawls in along a straight line, with error
+about `x·h`. The centered one hugs the true value from the start, with error `h²/3`.
+
+### 3. Why the h² disappears
 
 ![x squared as a square](figures/square_x2.gif)
 
-`x²` is the area of a square. Grow one side by `h` and you get two strips plus a little red corner `h²`. That
-corner is exactly the error of the one-sided formula: `((x+h)² − x²) / h = 2x + h`.
+`x²` is the area of a square. Grow the side by `h` and you add two strips plus a pink corner `h²`. That corner is
+the whole error of the one-sided formula: `((x+h)² − x²) / h = 2x + h`.
 
-Now grow by `h` and shrink by `h`. The two strips have lengths `x + h` and `x − h`, one too long and one too
-short by the same amount, so the error cancels: `((x+h)² − (x−h)²) / 2h = 2x`, exactly. In general the
-centered error is `O(h²)` instead of `O(h)`, and on the right the dashed secant lines up with the true slope.
+Now grow by `h` and shrink by `h`. The difference is two strips `2h` wide, one `x + h` long and one `x − h` long.
+Cut the extra `h` off the long one and it fills the gap in the short one exactly. Both become `2h × x`, the area
+is `4xh`, and dividing by `2h` gives `2x` with nothing left over.
 
 ### 4. From derivative to gradient
 
-![gradient in 2D](figures/gradient_2d.gif)
+![gradient as a hike](figures/gradient_2d.gif)
 
-A loss depends on many inputs at once. The gradient is just one derivative per input: hold everything else
-still, nudge one coordinate by `±h`, and measure. Do that for every coordinate and you have `numerical_gradient`.
-The result points straight across the contour lines, uphill, and matches the analytical gradient `(x, 3y)` to
-about `1e-11`.
+A loss depends on many inputs at once, like the height of a hill depends on east and north. To find uphill,
+stand still and take one tiny step east and west, then one north and south. Each pair of steps gives one partial
+derivative, and together they make the gradient arrow. That loop is `numerical_gradient`, and its answer matches
+the analytical gradient `(−x, −3y)` to about `1e-11`.
+
+Follow the arrow step by step and you reach the summit. Flip its sign and you walk downhill instead, which is
+gradient descent, the thing that trains every model.
 
 ### 5. How small should h be?
 
 ![error vs h](figures/error_vs_h.png)
 
-Smaller isn't always better. Below about `1e-8`, floating-point round-off swamps the estimate. The centered
-formula bottoms out near `h = 1e-5`, which is why that's the default step size in `numerical_gradient`.
+Smaller isn't always better. If `h` is too big, the curve bends away from the secant line. If it's too small,
+below about `1e-8`, floating-point round-off swamps the estimate. The centered formula bottoms out near
+`h = 1e-5`, which is why that's the default step size in `numerical_gradient`.
 
 To redraw these figures, run this from `6_grad_check`:
 
@@ -72,7 +79,7 @@ python -m examples.calculus_intuition
 
 The ring, sliver and square pictures are the ones Grant Sanderson uses in the first two chapters of
 [**3Blue1Brown, *Essence of Calculus***](https://youtube.com/playlist?list=PLZHQObOWTQDMsr9K-rj53DwVRMYO3t5Yr&si=guWmcdNLRhyTxTgw).
-The animations here are my own versions, drawn with matplotlib, but the way of seeing it is his. Watch the
+The animations here are my own versions, drawn with matplotlib on graph paper like my notes, but the way of seeing it is his. Watch the
 originals.
 
 ---
