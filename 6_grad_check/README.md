@@ -71,11 +71,86 @@ right than on the left, so the red piece is a little bigger than the purple one.
 so the estimate is 2.2533 against 2.40 for one-sided. Shrink `h` by 10× and the one-sided error drops 10×, but
 the centered error drops 100×.
 
-To redraw these figures, run this from `6_grad_check`:
+## The build
+
+```
+6_grad_check/
+├── grad_check/
+│   ├── numerical.py      # numerical_gradient: centered difference, any shape
+│   └── analytical.py     # softmax, cross_entropy_loss, forward, analytical_gradient_W
+├── examples/
+│   ├── run_all.py        # the five checks + benchmark, prints everything
+│   ├── figures.py        # the readme figures below
+│   └── calculus_intuition.py
+├── tests/test_grad_check.py
+└── figures/
+```
+
+Run from `6_grad_check`:
 
 ```bash
+python3 examples/run_all.py        # checks, benchmark, speedup_curve.png
+python3 examples/figures.py        # grad_intuition, grad_check_result, h_sweep
 python -m examples.calculus_intuition
+pytest tests -v
 ```
+
+### 1. The numerical gradient
+
+`numerical_gradient(f, x, h=1e-5)` nudges one element of `x` up by `h`, then down by `h`, and takes
+`(f(x+h) − f(x−h)) / 2h`. That's the centered formula from above, once per element. It walks the array with
+`np.nditer`, so the same loop works for a vector, a matrix or a 0-d scalar.
+
+It starts with `x = x.astype(float)`. My first run printed `[50000, 150000, 250000, 350000]` for `d/dx sum(x²)`
+instead of `[2, 4, 6, 8]`: `np.arange(1, 5)` is an int array, and `1 − 0.00001` got stored as `0`. The cast also
+makes a copy, so the caller's array is never touched.
+
+### 2. The analytical gradient
+
+For one sample with true class `k`, the loss is `−log(p_k)`, and its derivative with respect to each logit is
+`p_j − 1` for the true class and `p_j` for the others. In one line: `dL/dz = probs − y_true`. Averaged over the
+batch and pushed back through `z = X @ W`, that becomes `dL/dW = X.T @ (probs − y_true) / N`.
+
+![what probs - y_true says](figures/grad_intuition.png)
+
+This sample is badly wrong: it puts 0.90 on class 2 when the answer is class 0. The gradient says exactly how
+to fix that: a big negative push on class 0 (raise its score) and a big positive push on class 2 (lower it).
+Class 1 was already near zero, so it barely moves.
+
+### 3. Do they agree?
+
+![analytical vs numerical](figures/grad_check_result.png)
+
+All 12 entries of `dL/dW` sit on the line `y = x`. The max relative error is **1.4e-8**, against a target
+of 1e-5 (CS231n's thresholds: below 1e-7 is excellent, above 1e-3 is almost certainly a bug).
+
+### 4. Picking h, on the real loss
+
+![h sweep](figures/h_sweep.png)
+
+The same U shape as the calculus section, now measured on the softmax loss. Anything from about `1e-4` to
+`1e-6` works, and `1e-5` sits right in the middle. The flat floor at 1e-8 isn't round-off: it's the `+ 1e-9`
+inside `log()` in my loss, which the analytical formula doesn't know about.
+
+### 5. Loop vs NumPy
+
+![speedup curve](figures/speedup_curve.png)
+
+| n | loop | numpy | speedup |
+|---:|---:|---:|---:|
+| 100 | 14 µs | 0.3 µs | ~45x |
+| 10,000 | 1.4 ms | 2.7 µs | ~510x |
+| 1,000,000 | 145 ms | 0.7 ms | ~200x |
+
+The loop is a straight line: 10× the elements, 10× the time. NumPy is nearly flat until about 1,000 elements,
+because the fixed cost of the call is the whole cost. The speedup peaks near 100k and drops at 1M, where NumPy's
+own line gets steeper.
+
+### Tests
+
+8 tests: softmax rows sum to 1 (including logits ×1000), loss ≈ 0 for perfect predictions, loss = `log(C)`
+for uniform ones, gradient shape matches `W`, the gradient check itself, and three edge cases for the
+numerical gradient: int input, a 0-d scalar, and the input array left unchanged.
 
 ## Credit
 

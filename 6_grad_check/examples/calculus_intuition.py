@@ -1,7 +1,8 @@
-"""Draws the calculus intuition figures for Day 6: what a derivative is, and why the centered difference works.
+"""
+calculus intuition figures for day 6: what a derivative is, and why the centered difference works.
 
-Everything is drawn like a page of my notebook: graph paper, pen, highlighter and sticky notes.
-Run from 6_grad_check:  python -m examples.calculus_intuition
+everything is drawn like a page of my notebook: graph paper, pen, highlighter and sticky notes.
+run from 6_grad_check:  python -m examples.calculus_intuition
 """
 
 import warnings
@@ -153,12 +154,12 @@ def circle_area_gif():
     R, N = 1.1, 10
     dr = R / N
     C = np.array([-2.2, 3.3])  # circle center
-    K = 1.7                    # the circle is drawn K times larger than the strips, so the rings are visible
-    X0, S = 1.2, 5.8           # where the unrolled strips start, and how much the r axis is stretched
+    K = 1.7   # the circle is drawn K times larger than the strips, so the rings are visible
+    X0, S = 1.2, 5.8 # where the unrolled strips start, and how much the r axis is stretched
     r0 = 0.66
     ring_colors = LinearSegmentedColormap.from_list("rings", ["#4c6ef5", "#15aabf", "#40c057"])
     theta = np.linspace(0, 2 * np.pi, 90)
-    phi = -np.pi / 2 + theta   # cut each ring at the bottom and unroll from there
+    phi = -np.pi / 2 + theta	# cut each ring at the bottom and unroll from there
 
     start_at = lambda k: 10 + 5 * k
     unroll_len = 13
@@ -412,9 +413,9 @@ def square_gif():
             write(ax, x * s / 2 - 0.25, x * s / 2 - 0.15, "$x^2$", size=22)
             side_labels(x * s)
         if phase == "grow":
-            a = ease(t * 3)            # right strip slides in
-            b = ease(t * 3 - 1)        # top strip slides down
-            c = ease(t * 3 - 2)        # the corner pops in
+            a = ease(t * 3)  # right strip slides in
+            b = ease(t * 3 - 1)    # top strip slides down
+            c = ease(t * 3 - 2) # the corner pops in
             tile(rect(x + 3 * (1 - a), 0, h, x), GREEN)
             tile(rect(0, x + 2 * (1 - b), x, h), GREEN)
             if c > 0:
@@ -444,8 +445,8 @@ def square_gif():
             side_labels(x)
 
             # the two strips that make up (x+h)^2 - (x-h)^2
-            long_home = rect(inner, 0, 2 * h, x + h)             # vertical: 2h wide, x+h tall
-            short_home = rect(0, inner, inner, 2 * h)            # horizontal: x-h long, 2h tall
+            long_home = rect(inner, 0, 2 * h, x + h)  # vertical: 2h wide, x+h tall
+            short_home = rect(0, inner, inner, 2 * h)	# horizontal: x-h long, 2h tall
             long_bench = np.array([[bench[0], 2.5], [bench[0], 2.5 + 2 * h],
                                    [bench[0] + x + h, 2.5 + 2 * h], [bench[0] + x + h, 2.5]])
             short_bench = rect(bench[0], 0.7, inner, 2 * h)
