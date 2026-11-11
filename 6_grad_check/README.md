@@ -73,84 +73,205 @@ the centered error drops 100×.
 
 ## The build
 
+### The setup: a tiny classifier
+
+Everything below runs on one small, made-up classification problem:
+
+| name | shape | what it is |
+|---|---|---|
+| `X` | (5, 4) | the data: 5 samples, each described by 4 numbers (features) |
+| `W` | (4, 3) | the weights: one number for every feature → class connection, 12 in total |
+| `y_true` | (5, 3) | the answers, one-hot: each row has a 1 under the correct class and 0 elsewhere |
+
+The model does three things:
+
+1. **Scores.** `z = X @ W` gives `(5, 3)`: one raw score per class, per sample. Higher means "more likely this class".
+2. **Probabilities.** `softmax(z)` turns each row of scores into probabilities that add up to 1. It raises `e`
+   to each score and divides by the row total.
+3. **Loss.** Cross-entropy is `−log(probability given to the correct class)`, averaged over the 5 samples. If
+   the model gives the right class 100%, the loss is 0. If it gives it 6%, the loss is `−log(0.06) ≈ 2.8`.
+
+Training means changing `W` to lower the loss, and for that you need the **gradient**: for each of the 12
+weights, how much the loss changes when that weight changes a little. It has the same shape as `W`, (4, 3).
+
+I compute that gradient two ways and check that they agree.
+
+### 1. The slow way: nudge every weight (`numerical.py`)
+
+This is the definition of a derivative from the calculus section, done literally. For each weight, one at a
+time:
+
+1. nudge it up by `h = 0.00001` and compute the loss;
+2. nudge it down by `h` and compute the loss again;
+3. put it back, and take `(loss_up − loss_down) / 2h`.
+
+That's 24 loss calculations for 12 weights. It's slow, but it can't get the math wrong, because it never
+uses any math about the model. It just measures.
+
+`numerical_gradient(f, x, h)` takes any function `f` that returns one number, and an array `x` of any shape.
+For the gradient check, `W` is flattened to 12 numbers, and `f` reshapes it back to (4, 3) and returns the loss.
+
+One bug worth recording: my first version returned `[50000, 150000, 250000, 350000]` for the gradient of
+`x²` at `[1, 2, 3, 4]` instead of `[2, 4, 6, 8]`. The input was an integer array, so `1 − 0.00001` was stored
+as `0`. The function now converts the input to floats first (which also leaves the caller's array untouched).
+
+### 2. The fast way: the formula (`analytical.py`)
+
+Working the calculus out on paper, softmax and cross-entropy together have a surprisingly simple gradient
+with respect to the scores:
+
 ```
-6_grad_check/
-├── grad_check/
-│   ├── numerical.py      # numerical_gradient: centered difference, any shape
-│   └── analytical.py     # softmax, cross_entropy_loss, forward, analytical_gradient_W
-├── examples/
-│   ├── run_all.py        # the five checks + benchmark, prints everything
-│   ├── figures.py        # the readme figures below
-│   └── calculus_intuition.py
-├── tests/test_grad_check.py
-└── figures/
+dL/dz = probs − y_true          what the model said, minus what it should have said
 ```
 
-Run from `6_grad_check`:
+To get the gradient for the weights, that's multiplied back through `z = X @ W` and averaged over the batch:
 
-```bash
-python3 examples/run_all.py        # checks, benchmark, speedup_curve.png
-python3 examples/figures.py        # grad_intuition, grad_check_result, h_sweep
-python -m examples.calculus_intuition
-pytest tests -v
+```
+dL/dW = X.T @ (probs − y_true) / N          (4, 5) @ (5, 3) = (4, 3)
 ```
 
-### 1. The numerical gradient
+One matrix multiply instead of 24 loss calculations. But if I made a mistake on paper, nothing would warn me,
+which is the whole reason for the check.
 
-`numerical_gradient(f, x, h=1e-5)` nudges one element of `x` up by `h`, then down by `h`, and takes
-`(f(x+h) − f(x−h)) / 2h`. That's the centered formula from above, once per element. It walks the array with
-`np.nditer`, so the same loop works for a vector, a matrix or a 0-d scalar.
+**What the formula means, on one sample:**
 
-It starts with `x = x.astype(float)`. My first run printed `[50000, 150000, 250000, 350000]` for `d/dx sum(x²)`
-instead of `[2, 4, 6, 8]`: `np.arange(1, 5)` is an int array, and `1 − 0.00001` got stored as `0`. The cast also
-makes a copy, so the caller's array is never touched.
+![logits, softmax and the gradient for one sample](figures/grad_intuition.png)
 
-### 2. The analytical gradient
+This is sample 0, whose correct answer is class 0 (blue).
 
-For one sample with true class `k`, the loss is `−log(p_k)`, and its derivative with respect to each logit is
-`p_j − 1` for the true class and `p_j` for the others. In one line: `dL/dz = probs − y_true`. Averaged over the
-batch and pushed back through `z = X @ W`, that becomes `dL/dW = X.T @ (probs − y_true) / N`.
+- **Left, scores:** class 2 has by far the highest score (2.45). The correct class gets −0.26.
+- **Middle, probabilities:** softmax turns that into 90% for class 2 and only 6% for the correct class. The
+  model is confidently wrong.
+- **Right, gradient:** `probs − y_true` = `[0.06, 0.04, 0.90] − [1, 0, 0]` = `[−0.94, +0.04, +0.90]`.
 
-![what probs - y_true says](figures/grad_intuition.png)
+Training moves each score *against* its gradient. So the correct class (green, negative) gets pushed up, and
+the wrong classes (red, positive) get pushed down. Each push is as big as the mistake: class 2 was 90% too
+high and gets a 0.90 push, while class 1 was only 4% too high and barely moves. The bars also always add up
+to zero: whatever probability is taken from the wrong classes goes to the right one.
 
-This sample is badly wrong: it puts 0.90 on class 2 when the answer is class 0. The gradient says exactly how
-to fix that: a big negative push on class 0 (raise its score) and a big positive push on class 2 (lower it).
-Class 1 was already near zero, so it barely moves.
+### 3. Do the two ways agree?
 
-### 3. Do they agree?
+They're compared with the **relative error**, one per weight:
 
-![analytical vs numerical](figures/grad_check_result.png)
+```
+|formula − nudged| / max(|formula|, |nudged|)
+```
 
-All 12 entries of `dL/dW` sit on the line `y = x`. The max relative error is **1.4e-8**, against a target
-of 1e-5 (CS231n's thresholds: below 1e-7 is excellent, above 1e-3 is almost certainly a bug).
+It's relative because a difference of 0.001 is huge if the gradient is 0.002, but nothing if it's 100.
+Dividing by the size makes all 12 comparable. My rule of thumb:
 
-### 4. Picking h, on the real loss
+| relative error | verdict |
+|---|---|
+| below 1e-7 | excellent |
+| 1e-7 to 1e-5 | fine |
+| 1e-5 to 1e-3 | suspicious |
+| above 1e-3 | almost certainly a bug |
 
-![h sweep](figures/h_sweep.png)
+![the two gradients compared](figures/grad_check_result.png)
 
-The same U shape as the calculus section, now measured on the softmax loss. Anything from about `1e-4` to
-`1e-6` works, and `1e-5` sits right in the middle. The flat floor at 1e-8 isn't round-off: it's the `+ 1e-9`
-inside `log()` in my loss, which the analytical formula doesn't know about.
+- **Left:** each dot is one of the 12 weights. Its x-position is the formula's answer and its y-position is
+  the nudging answer. If they agree, the dot lands on the dashed line `y = x`. All 12 do. The values run from
+  −0.37 to +0.40: positive means increasing that weight would raise the loss, negative means it would lower it.
+- **Right:** the same 12 weights as a grid shaped like `W` (rows are the 4 features, columns the 3 classes),
+  each cell showing its relative error. The color scale is logarithmic, so each step is 10×. Every cell is
+  green, between 6e-10 and 1.4e-8.
+
+**Result: max relative error 1.4e-8, mean 7.5e-9.** The worst weight is about 700× below the 1e-5 target, so
+the formula is right. A real bug, like forgetting the `/ N`, would put every cell around 0.8, deep red.
+
+### 4. How small should h be?
+
+The check above used `h = 1e-5`. Here's what happens with every `h` from 0.1 down to 0.000000000001, each
+time running the whole check and plotting the worst of the 12 errors:
+
+![error vs step size](figures/h_sweep.png)
+
+`h` gets smaller to the right. The curve is a U, with three parts:
+
+1. **Too big (left).** At `h = 0.1` the error is 4e-3, which would look like a bug even though nothing is
+   wrong. A big step measures the slope of a straight line between two far-apart points, and the curved loss
+   bends away from it. This error shrinks with `h²`: 10× smaller `h`, 100× smaller error.
+2. **Just right (middle).** From `1e-4` to `1e-6` the error is flat at about 1.4e-8. `1e-5` is in the middle.
+3. **Too small (right).** Below about `1e-7`, the error climbs back up to 4e-3. A computer keeps only about
+   16 significant digits, so `loss_up` and `loss_down` become identical except in their last few digits.
+   Subtracting them leaves mostly rounding noise, and dividing by a tiny `2h` blows that noise up.
+
+**Why the floor is at 1e-8 and not lower:** my loss uses `log(probs + 1e-9)` so it never takes `log(0)`. The
+nudging method measures that loss exactly, tiny `+ 1e-9` included. The formula `probs − y_true` assumes a
+plain `log`. That small mismatch is the floor. Without the `1e-9`, the error drops to 3e-10.
+
+**The lesson:** a failed gradient check isn't always a bug. With the wrong `h`, a correct gradient can fail.
 
 ### 5. Loop vs NumPy
 
-![speedup curve](figures/speedup_curve.png)
+Separate from the model: how much faster is NumPy than a plain Python loop? Both multiply two arrays of
+random numbers element by element (`result[i] = A[i] * B[i]`), at 5 sizes from 100 to 1,000,000 numbers.
+
+- **The loop** goes one element at a time in Python. Every step, Python has to fetch the two values, wrap
+  them as Python objects, check their types, multiply, and store the result.
+- **NumPy** (`A * B`) makes one call, then runs a tight loop in compiled C code over raw memory.
+
+Each version is timed 3 times, and the fastest run is kept, since background activity on the computer can
+only ever add time. NumPy is so fast at small sizes that each timing runs it 10 times and divides by 10.
+
+![loop vs numpy](figures/speedup_curve.png)
 
 | n | loop | numpy | speedup |
 |---:|---:|---:|---:|
 | 100 | 14 µs | 0.3 µs | ~45x |
+| 1,000 | 0.14 ms | 0.5 µs | ~290x |
 | 10,000 | 1.4 ms | 2.7 µs | ~510x |
+| 100,000 | 14 ms | 23 µs | ~600x |
 | 1,000,000 | 145 ms | 0.7 ms | ~200x |
 
-The loop is a straight line: 10× the elements, 10× the time. NumPy is nearly flat until about 1,000 elements,
-because the fixed cost of the call is the whole cost. The speedup peaks near 100k and drops at 1M, where NumPy's
-own line gets steeper.
+*(exact numbers change a little each run)*
+
+- **Left, the two times:** the loop (red) is a straight line, costing about 140 nanoseconds per element at
+  every size. NumPy (green) is almost flat at first, because at 100 elements the fixed cost of making the
+  call is nearly the whole cost.
+- **Right, the ratio:** the speedup climbs as that fixed cost is spread over more elements, peaks around
+  600x at 100,000, then drops to 200x at 1,000,000.
+
+That drop surprised me. From 100k to 1M, NumPy's time grew 30x for 10x the data. My guess is memory: at 1M,
+the three arrays (`A`, `B` and the result, 8 MB each) no longer fit in the CPU's small, fast cache, so NumPy
+waits on slower main memory. I haven't tested that yet.
 
 ### Tests
 
-8 tests: softmax rows sum to 1 (including logits ×1000), loss ≈ 0 for perfect predictions, loss = `log(C)`
-for uniform ones, gradient shape matches `W`, the gradient check itself, and three edge cases for the
-numerical gradient: int input, a 0-d scalar, and the input array left unchanged.
+`pytest tests -v` runs 8 tests:
+
+1. softmax rows add up to 1, including with huge scores (×1000) that would overflow without the max-subtraction trick
+2. a near-perfect prediction gives a loss near 0
+3. a uniform prediction (every class equally likely) gives a loss of `log(number of classes)`
+4. the gradient has the same shape as `W`
+5. the gradient check passes, with max relative error below 1e-5
+6. the numerical gradient works on integer input (the bug above)
+7. it works on a single number (a 0-d array)
+8. it doesn't change the array it's given
+
+### Files and how to run
+
+```
+6_grad_check/
+├── grad_check/
+│   ├── numerical.py        numerical_gradient
+│   └── analytical.py       softmax, cross_entropy_loss, forward, analytical_gradient_W
+├── examples/
+│   ├── run_all.py          runs every check and the benchmark, prints the results
+│   ├── figures.py          draws the figures in sections 2–4
+│   └── calculus_intuition.py   draws the animations at the top
+├── tests/test_grad_check.py
+└── figures/
+```
+
+From `6_grad_check`:
+
+```bash
+python3 examples/run_all.py               # all checks + benchmark, saves speedup_curve.png
+python3 examples/figures.py               # grad_intuition, grad_check_result, h_sweep
+python -m examples.calculus_intuition     # the animations
+pytest tests -v
+```
 
 ## Credit
 

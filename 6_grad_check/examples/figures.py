@@ -95,7 +95,7 @@ def check_result(X, W, y_true):
     left.legend(loc="upper left", fontsize=9)
     left.grid(True, alpha=0.3)
 
-    # right: relative error per entry, colored on the cs231n scale
+    # right: relative error per entry, colored by how close the two are
     im = right.imshow(err, cmap="RdYlGn_r", norm=LogNorm(vmin=1e-10, vmax=1e-2))
     for (r, c), v in np.ndenumerate(err):
         right.text(c, r, f"{v:.0e}", ha="center", va="center", fontsize=9)
@@ -119,7 +119,7 @@ def h_sweep(X, W, y_true):
     errs = [rel_error(*both_grads(X, W, y_true, h=h)).max() for h in hs]
 
     fig, ax = plt.subplots(figsize=(8.5, 5))
-    # cs231n zones
+    # verdict zones
     ax.axhspan(1e-20, 1e-7, color=GREEN, alpha=0.08)
     ax.axhspan(1e-7, 1e-5, color="#f4d35e", alpha=0.15)
     ax.axhspan(1e-3, 1e3, color=RED, alpha=0.08)
