@@ -20,6 +20,7 @@ This is a 115-day ML engineering curriculum. Each day has its own folder with th
 | 4 | [Python Data Structures & Complexity](4_utils/) | Typed utility functions with edge cases, complexity analysis and tests | [Research log](4_utils/research-log/2026-11-04.md) |
 | 5 | [NumPy Arrays, Shapes & Broadcasting](5_shape_inspect/) | Shape inspection, reshape, axis reductions, broadcasting, a loop vs NumPy benchmark, and generated figures | [Research log](5_shape_inspect/research-log/2026-11-05.md) |
 | 6 | [Gradient Checking & Vectorization Benchmarks](6_grad_check/) | A finite-difference gradient checker, the softmax + cross-entropy gradient verified to 1e-8, a loop vs NumPy speedup curve, and animated calculus intuition | [Research log](6_grad_check/research-log/2026-11-10.md) |
+| 7 | [Probability, Statistics & Regularized Models](7_prob_stats/) | MLE, MAP, Bayes and information theory from scratch, linear and logistic regression built on them, a timing benchmark, and three pre-registered experiments on regularization and leakage | [Research log](7_prob_stats/research-log/2026-11-16.md) |
 
 Upcoming builds include a training loop, autograd engine, attention mechanism, and transformer from scratch.
 
