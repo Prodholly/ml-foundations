@@ -1,10 +1,9 @@
-# run from 6_grad_check:  python3 examples/run_all.py
 import os
 import sys
 import timeit
 
 import matplotlib
-matplotlib.use("Agg")   # no window, just save the file
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -15,35 +14,31 @@ from grad_check import softmax, cross_entropy_loss, forward, analytical_gradient
 FIGURES = os.path.join(os.path.dirname(__file__), "..", "figures")
 
 
-# 1. numerical gradient on a 1d vector
 def check_vector():
-    x_vec = np.arange(1, 5, dtype=float)  # (4,)
+    x_vec = np.arange(1, 5, dtype=float)
     grad_vec = numerical_gradient(lambda x: np.sum(x**2), x_vec)
     print("input vector:", x_vec)
     print("numerical gradient:", grad_vec)
     print("expected (2x):", 2 * x_vec)
 
 
-# 2. numerical gradient on a 2d matrix
 def check_matrix():
     W = np.array([[1.0, 2.0, 3.0],
-                  [4.0, 5.0, 6.0]])     # (2, 3) some weight
+                  [4.0, 5.0, 6.0]])
     grad_W = numerical_gradient(lambda w: np.sum(w**2), W)
     print("input matrix shape:", W.shape)
     print("numerical gradient:\n", grad_W)
     print("expected (2W):\n", 2 * W)
 
 
-# 3. forward pass
 def setup():
     np.random.seed(42)
-    N, D, C = 5, 4, 3   # 5 samples, 4 features, 3 classes
-    X = np.random.randn(N, D) # (5, 4)
-    W = np.random.randn(D, C)  # (4, 3)
+    N, D, C = 5, 4, 3
+    X = np.random.randn(N, D)
+    W = np.random.randn(D, C)
 
-    # one-hot labels: each of the 5 samples belongs to one of 3 classes
     labels = np.array([0, 1, 2, 0, 1])
-    y_true = np.eye(C)[labels]    # (5, 3)
+    y_true = np.eye(C)[labels]
     return X, W, y_true
 
 
@@ -62,27 +57,22 @@ def check_forward(X, W, y_true):
     print(f"row sums: {probs.sum(axis=1).round(6)}")
 
 
-# 4. gradient check: numerical vs analytical dL/dW
 def check_gradient(X, W, y_true, threshold=1e-5):
     D, C = W.shape
 
-    # X and y_true stay fixed, W is the thing we differentiate
     def loss_fn(W_flat: np.ndarray) -> float:
-        probs, _ = forward(X, W_flat.reshape(D, C))  # (5, 3)
-        return cross_entropy_loss(probs, y_true)     # scalar
+        probs, _ = forward(X, W_flat.reshape(D, C))
+        return cross_entropy_loss(probs, y_true)
 
-    # numerical: slow but trustworthy
-    num_grad = numerical_gradient(loss_fn, W.flatten())  # (12,)
-    num_grad = num_grad.reshape(D, C)	# (4, 3)
+    num_grad = numerical_gradient(loss_fn, W.flatten())
+    num_grad = num_grad.reshape(D, C)
 
-    # analytical: fast, the one we're checking
-    probs, _ = forward(X, W)   # (5, 3)
-    ana_grad = analytical_gradient_W(X, probs, y_true)  # (4, 3)
+    probs, _ = forward(X, W)
+    ana_grad = analytical_gradient_W(X, probs, y_true)
 
-    # relative error, element by element
-    numerator = np.abs(ana_grad - num_grad)  # (4, 3)
+    numerator = np.abs(ana_grad - num_grad)
     denominator = np.maximum(np.abs(ana_grad), np.abs(num_grad)) + 1e-8
-    rel_error = numerator / denominator    # (4, 3)
+    rel_error = numerator / denominator
 
     print(f"analytical gradient:\n{ana_grad.round(6)}")
     print(f"\nnumerical gradient:\n{num_grad.round(6)}")
@@ -96,7 +86,6 @@ def check_gradient(X, W, y_true, threshold=1e-5):
         print(f"\nfail: max error {rel_error.max():.2e} >= {threshold:.0e}")
 
 
-# 5. loop vs numpy benchmark
 def benchmark(sizes=(100, 1_000, 10_000, 100_000, 1_000_000)):
     loop_times = []
     numpy_times = []
@@ -108,18 +97,15 @@ def benchmark(sizes=(100, 1_000, 10_000, 100_000, 1_000_000)):
         A = np.random.rand(n)
         B = np.random.rand(n)
 
-        # python loop, one run per timing
         def loop_mult():
             result = np.zeros(n)
             for i in range(n):
                 result[i] = A[i] * B[i]
             return result
 
-        # numpy, 10 runs per timing because one run is too fast to measure
         def numpy_mult():
             return A * B
 
-        # min of 3 repeats, the min is the most stable number (noise only ever adds time)
         loop_t = min(timeit.repeat(loop_mult, number=1, repeat=3))
         numpy_t = min(timeit.repeat(numpy_mult, number=10, repeat=3)) / 10
 
@@ -136,19 +122,17 @@ def plot_speedup(sizes, loop_times, numpy_times):
     os.makedirs(FIGURES, exist_ok=True)
     fig, (left, right) = plt.subplots(1, 2, figsize=(13, 5))
 
-    # left: the two raw times, slow one red, fast one green
     left.loglog(sizes, loop_times, marker="o", linewidth=2, color="#d62828", label="python loop (slow)")
     left.loglog(sizes, numpy_times, marker="o", linewidth=2, color="#2a9d3f", label="numpy (fast)")
-    left.fill_between(sizes, numpy_times, loop_times, color="gray", alpha=0.08)  # the gap = the speedup
+    left.fill_between(sizes, numpy_times, loop_times, color="gray", alpha=0.08)
     left.set_xlabel("array size (log scale)")
     left.set_ylabel("time per run, seconds (log scale)")
     left.set_title("loop vs numpy: time")
     left.legend()
     left.grid(True, which="both", alpha=0.3)
 
-    # right: the ratio between them
     right.loglog(sizes, speedups, marker="o", linewidth=2, color="steelblue")
-    for x, y in zip(sizes, speedups):     # label each point with its speedup
+    for x, y in zip(sizes, speedups):
         right.annotate(f"{y:.0f}x", xy=(x, y), xytext=(5, 5),
                        textcoords="offset points", fontsize=8)
     right.set_xlabel("array size (log scale)")

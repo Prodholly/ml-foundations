@@ -10,3 +10,8 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 .DS_Store
+
+# day 8 mnist / cifar downloads
+8_pytorch/data/
+8_pytorch/checkpoints/
+8_pytorch/results/trace.json

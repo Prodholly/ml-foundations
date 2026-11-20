@@ -1,5 +1,3 @@
-"""Runs every Day 5 task and saves the figures to figures/."""
-
 from examples.figures import save_all
 from numpy_ops import axis_demo, benchmark_demo, broadcast_demo, reshape_demo, shape_demo
 
@@ -11,9 +9,9 @@ if __name__ == "__main__":
         ("Broadcasting", broadcast_demo),
         ("loop vs vectorized", benchmark_demo),
     ]:
-        print(f"\n=== {title} ===")
+        print(f"\n={title}--=")
         demo()
 
-    print("\n=== figures ===")
+    print("\n=--figures--==")
     for name in save_all():
         print(f"saved figures/{name}")

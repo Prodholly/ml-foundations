@@ -1,10 +1,8 @@
-"""Draws the Day 5 figures: the reshape diagram, the broadcast diagram and the reshape GIF."""
-
 from pathlib import Path
 
 import matplotlib
 
-matplotlib.use("Agg")  # save to files, no window
+matplotlib.use("Agg")
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -14,13 +12,12 @@ from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 FIGURES = Path(__file__).resolve().parent.parent / "figures"
 
-# >> style
 
 BG = "#fbfaf7"
 INK = "#1f2933"
 MUTED = "#8a94a3"
 GOLD = "#e8b007"
-ROW_HUES = ["#3b6fb6", "#d9692b", "#2f9e72"]  # one hue per row of the (3, 4) grid
+ROW_HUES = ["#3b6fb6", "#d9692b", "#2f9e72"]
 A_HUE, B_HUE, C_HUE, OUT_HUE = "#3b6fb6", "#d9692b", "#8a5cc2", "#2f9e72"
 MONO = "DejaVu Sans Mono"
 
@@ -28,13 +25,11 @@ plt.rcParams.update({"font.family": "DejaVu Sans", "text.color": INK})
 
 
 def lighten(color, t):
-    # mix a color with white: t=0 keeps it, t=1 gives white
     r, g, b = to_rgb(color)
     return (r + (1 - r) * t, g + (1 - g) * t, b + (1 - b) * t)
 
 
 def element_color(i):
-    # each row has its own hue, getting lighter along the columns
     row, col = divmod(i, 4)
     return lighten(ROW_HUES[row], 0.08 * col)
 
@@ -72,7 +67,6 @@ def blank_slot(ax, x, y):
 
 
 def bracket(ax, x0, x1, y, color, label):
-    # a square bracket under a run of cells, with a label below it
     ax.plot([x0 + 0.1, x0 + 0.1, x1 - 0.1, x1 - 0.1], [y + 0.15, y, y, y + 0.15],
             color=color, linewidth=2, solid_capstyle="round")
     ax.text((x0 + x1) / 2, y - 0.3, label, ha="center", va="center", fontsize=10,
@@ -95,14 +89,11 @@ def save(fig, name):
     plt.close(fig)
 
 
-# >> shared pieces of the reshape picture
-
-STRIP_Y = 6.0  # the (12,) vector sits on this row
+STRIP_Y = 6.0
 
 
 def grid_xy(i, x0, top):
-    # where element i lands in a (3, 4) grid whose top-left corner is (x0, top)
-    row, col = divmod(i, 4)  # row-major: i = row * 4 + col
+    row, col = divmod(i, 4)
     return x0 + col, top - 1 - row
 
 
@@ -119,7 +110,6 @@ def draw_strip(ax, highlight=None, ghosts=()):
 
 
 def draw_grid_frame(ax, x0, top):
-    # row and column indices, axis names and the shape label around a (3, 4) grid
     for r in range(3):
         ax.text(x0 - 0.3, top - 0.5 - r, str(r), ha="center", va="center", fontsize=10,
                 family=MONO, color=ROW_HUES[r], fontweight="bold")
@@ -131,8 +121,6 @@ def draw_grid_frame(ax, x0, top):
     ax.text(x0 + 2, top - 3.75, "axis 1  (columns)", ha="center", va="center", fontsize=10, color=MUTED)
     ax.text(x0 + 4.2, top - 1.5, "(3, 4)", ha="left", va="center", fontsize=13, family=MONO)
 
-
-# >> figure 1: reshape diagram
 
 def save_reshape_diagram() -> None:
     fig, ax = new_figure(13, 7.4, (-1.6, 13.4), (-1.3, 7.8))
@@ -147,12 +135,10 @@ def save_reshape_diagram() -> None:
         cell(ax, gx, gy, str(i), element_color(i), sub=f"[{i // 4},{i % 4}]", ring=GOLD if i == 11 else None)
     draw_grid_frame(ax, x0, top)
 
-    # one arrow for the reshape: the row colors already show where each run of 4 lands
     ax.add_patch(FancyArrowPatch((x0 + 2, 5.0), (x0 + 2, 3.85), arrowstyle="-|>", mutation_scale=22,
                                  linewidth=2, color=INK))
     ax.text(x0 + 2.35, 4.42, ".reshape(3, 4)", va="center", fontsize=12, family=MONO)
 
-    # the rule, written out next to the grid
     bx, by = 6.9, 0.25
     ax.add_patch(FancyBboxPatch((bx, by), 5.9, 3.35, boxstyle="round,pad=0.1,rounding_size=0.25",
                                 facecolor="white", edgecolor="#e3e6ea", linewidth=1.2))
@@ -168,10 +154,7 @@ def save_reshape_diagram() -> None:
     save(fig, "reshape_diagram.png")
 
 
-# >> figure 2: broadcast diagram
-
 def shape_table(ax, x, y, rows):
-    # rows: (name, dims, color, stretched); dims are right-aligned, None means "missing"
     ax.text(x + 1.6, y + 0.65, "axis 0", ha="center", fontsize=8.5, color=MUTED)
     ax.text(x + 2.6, y + 0.65, "axis 1", ha="center", fontsize=8.5, color=MUTED)
     for k, (name, dims, color, stretched) in enumerate(rows):
@@ -188,7 +171,6 @@ def shape_table(ax, x, y, rows):
 
 def broadcast_row(ax, y, left, left_ghost_rows, left_ghost_cols, right, right_ghost_rows,
                   right_ghost_cols, out, hues, names):
-    # draws  left + right = out  as three (3, 4) grids, ghost cells are the stretched copies
     positions = [0, 5.4, 10.8]
     for (grid, ghost_rows, ghost_cols, hue, name, gx) in [
         (left, left_ghost_rows, left_ghost_cols, hues[0], names[0], positions[0]),
@@ -207,10 +189,9 @@ def broadcast_row(ax, y, left, left_ghost_rows, left_ghost_cols, right, right_gh
 def save_broadcast_diagram() -> None:
     fig, ax = new_figure(15, 9.6, (-6.4, 15.2), (-7.7, 6.0))
 
-    # top: bias addition, (3, 4) + (4,)
-    A = np.arange(12).reshape(3, 4)   # shape: (3, 4)
-    b = np.array([10, 20, 30, 40])    # shape: (4,)
-    out1 = A + b                      # shape: (3, 4)
+    A = np.arange(12).reshape(3, 4)
+    b = np.array([10, 20, 30, 40])
+    out1 = A + b
     broadcast_row(ax, 2.0, A, (), (), np.broadcast_to(b, (3, 4)), (1, 2), (), out1,
                   (A_HUE, B_HUE, OUT_HUE), ("A  (3, 4)", "b  (4,)", "A + b  (3, 4)"))
     shape_table(ax, -6.0, 4.3, [
@@ -221,10 +202,9 @@ def save_broadcast_diagram() -> None:
     ax.text(-6.0, 1.75, "– b has no axis 0, so it\ncounts as 1 and is\ncopied down 3 rows",
             fontsize=10, color=MUTED, va="top", linespacing=1.4)
 
-    # bottom: outer add, (1, 4) + (3, 1), both stretch
-    r = np.arange(4).reshape(1, 4)        # shape: (1, 4)
-    c = np.array([[0], [10], [20]])       # shape: (3, 1)
-    out2 = r + c                          # shape: (3, 4)
+    r = np.arange(4).reshape(1, 4)
+    c = np.array([[0], [10], [20]])
+    out2 = r + c
     broadcast_row(ax, -5.0, np.broadcast_to(r, (3, 4)), (1, 2), (), np.broadcast_to(c, (3, 4)), (),
                   (1, 2, 3), out2, (A_HUE, C_HUE, OUT_HUE), ("r  (1, 4)", "c  (3, 1)", "r + c  (3, 4)"))
     shape_table(ax, -6.0, -2.7, [
@@ -245,11 +225,9 @@ def save_broadcast_diagram() -> None:
     save(fig, "broadcast_diagram.png")
 
 
-# >> figure 3: reshape animation
-
 def ease(t):
     t = min(max(t, 0.0), 1.0)
-    return t * t * (3 - 2 * t)  # smoothstep: slow start, slow finish
+    return t * t * (3 - 2 * t)
 
 
 def save_reshape_animation() -> None:
@@ -265,7 +243,6 @@ def save_reshape_animation() -> None:
         ax.set_aspect("equal")
         ax.axis("off")
 
-        # how far each row has travelled: 0 = still in x, 1 = landed in X
         progress = []
         for r in range(3):
             start = intro + r * (move + hold)
@@ -281,12 +258,12 @@ def save_reshape_animation() -> None:
         active = None
         for i in sorted(moving):
             r, c = divmod(i, 4)
-            t = ease(progress[r] * 1.25 - 0.08 * c)  # columns leave one after another
+            t = ease(progress[r] * 1.25 - 0.08 * c)
             if 0 < progress[r] < 1:
                 active = r
             gx, gy = grid_xy(i, x0, top)
             x = i + (gx - i) * t
-            y = STRIP_Y + (gy - STRIP_Y) * t + 0.6 * np.sin(np.pi * t)  # a small lift on the way
+            y = STRIP_Y + (gy - STRIP_Y) * t + 0.6 * np.sin(np.pi * t)
             cell(ax, x, y, str(i), element_color(i), sub=f"[{r},{c}]" if t == 1 else None,
                  ring=GOLD if done and i == 11 else None)
 

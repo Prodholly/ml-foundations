@@ -1,16 +1,9 @@
-"""
-calculus intuition figures for day 6: what a derivative is, and why the centered difference works.
-
-everything is drawn like a page of my notebook: graph paper, pen, highlighter and sticky notes.
-run from 6_grad_check:  python -m examples.calculus_intuition
-"""
-
 import warnings
 from pathlib import Path
 
 import matplotlib
 
-matplotlib.use("Agg")  # save to files, no window
+matplotlib.use("Agg")
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -18,11 +11,10 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.patches import Ellipse, FancyArrowPatch, FancyBboxPatch, Polygon, Rectangle, Wedge
 
-warnings.filterwarnings("ignore", message="Glyph")  # the handwriting font lacks a few symbols; mathtext covers them
+warnings.filterwarnings("ignore", message="Glyph")
 
 FIGURES = Path(__file__).resolve().parent.parent / "figures"
 
-# >> the notebook
 
 PAPER = "#fbf6e9"
 GRID = "#dbe5ef"
@@ -49,11 +41,10 @@ plt.rcParams.update({
 
 def ease(t):
     t = min(max(t, 0.0), 1.0)
-    return t * t * (3 - 2 * t)  # smoothstep: slow start, slow finish
+    return t * t * (3 - 2 * t)
 
 
 def shrink(t, start, end):
-    # move from start to end on a log scale, so small h gets as much screen time as large h
     return float(np.exp(np.log(start) + (np.log(end) - np.log(start)) * ease(t)))
 
 
@@ -62,13 +53,11 @@ def lerp(a, b, t):
 
 
 def pen(artist, wobble=1.0):
-    # a slightly shaky line, like it was drawn by hand
     artist.set_sketch_params(0.7 * wobble, 90, 1.4)
     return artist
 
 
 def notebook(width=11, height=6.2, step=0.24):
-    # cream graph paper; the grid is drawn once and every frame is drawn on top of it
     fig = plt.figure(figsize=(width, height))
     fig.patch.set_facecolor(PAPER)
     bg = fig.add_axes([0, 0, 1, 1], zorder=-5)
@@ -108,7 +97,6 @@ def write(ax, x, y, text, color=INK, size=14, **kw):
 
 
 def sticky(ax, x, y, w, h, lines, angle=1.5):
-    # a sticky note with a soft shadow; lines are (text, color, size)
     ax.add_patch(Rectangle((x + w * 0.025, y - h * 0.035), w, h, angle=angle, rotation_point="center",
                            facecolor="#000000", alpha=0.08, zorder=8))
     ax.add_patch(Rectangle((x, y), w, h, angle=angle, rotation_point="center", facecolor=STICKY,
@@ -125,7 +113,6 @@ def arrow(ax, start, end, color=INK, width=1.8, rad=0.0, head=14, zorder=7, styl
 
 
 def phases(**lengths):
-    # turns phase lengths into (name, local t in [0, 1]) for any frame number
     names, bounds, total = [], [], 0
     for name, n in lengths.items():
         names.append(name)
@@ -148,18 +135,16 @@ def save_gif(fig, draw, frames, name, fps=16):
     plt.close(fig)
 
 
-# >> 1. a circle is a stack of rings: unroll them
-
 def circle_area_gif():
     R, N = 1.1, 10
     dr = R / N
-    C = np.array([-2.2, 3.3])  # circle center
-    K = 1.7   # the circle is drawn K times larger than the strips, so the rings are visible
-    X0, S = 1.2, 5.8 # where the unrolled strips start, and how much the r axis is stretched
+    C = np.array([-2.2, 3.3])
+    K = 1.7
+    X0, S = 1.2, 5.8
     r0 = 0.66
     ring_colors = LinearSegmentedColormap.from_list("rings", ["#4c6ef5", "#15aabf", "#40c057"])
     theta = np.linspace(0, 2 * np.pi, 90)
-    phi = -np.pi / 2 + theta	# cut each ring at the bottom and unroll from there
+    phi = -np.pi / 2 + theta
 
     start_at = lambda k: 10 + 5 * k
     unroll_len = 13
@@ -183,7 +168,6 @@ def circle_area_gif():
         blank(ax, (-4.3, 12.6), (-0.9, 7.4), equal=True)
         heading(ov, "Why is a circle's area $\\pi R^2$ ?", "cut it into thin rings ... then unroll every ring")
 
-        # the r axis under the strips
         pen(ax.plot([X0 - 0.2, X0 + S * R + 0.5], [0, 0], color=INK, linewidth=1.6)[0])
         write(ax, X0 - 0.1, -0.55, "0", size=12)
         write(ax, X0 + S * R - 0.15, -0.55, "R", size=13)
@@ -200,7 +184,7 @@ def circle_area_gif():
             color = ring_colors(k / (N - 1))
             ax.add_patch(Polygon(ring_shape(k, e), closed=True, facecolor=color, edgecolor=PAPER,
                                  linewidth=0.6, alpha=0.28 if faded else 0.92, zorder=3))
-            if faded:  # keep a ghost of the circle while the strips are faded
+            if faded:
                 ax.add_patch(Polygon(ring_shape(k, 0), closed=True, facecolor=color, edgecolor=PAPER,
                                      linewidth=0.6, alpha=0.22, zorder=2))
         circle = pen(plt.Circle(tuple(C), K * R, fill=False, color=INK, linewidth=1.6, linestyle="--", zorder=4))
@@ -236,7 +220,6 @@ def circle_area_gif():
             rr = np.linspace(0, R * 1.04, 60)
             pen(ax.plot(X0 + S * rr, 2 * np.pi * rr, color=BLUE, linewidth=2.6, zorder=6)[0])
             write(ax, X0 + 0.2, 6.1, "$\\dfrac{dA}{dr} = 2\\pi r$", color=BLUE, size=19)
-            # the band from r - h to r + h, on the circle and under the line
             ax.add_patch(Wedge(tuple(C), K * (r0 + h), 0, 360, width=K * 2 * h, color=HIGHLIGHT, alpha=0.95, zorder=5))
             ax.add_patch(pen(plt.Circle(tuple(C), K * r0, fill=False, color=INK, linewidth=1, linestyle=":", zorder=6)))
             band = np.linspace(r0 - h, r0 + h, 20)
@@ -258,11 +241,9 @@ def circle_area_gif():
     save_gif(fig, draw, total, "circle_area.gif")
 
 
-# >> 2. my note: the area under x^2 grows at a rate of x^2
-
 def parabola_area_gif():
     x0 = 1.5
-    A = lambda x: x ** 3 / 3  # area under t^2 from 0 to x
+    A = lambda x: x ** 3 / 3
     which, total = phases(sweep=26, sliver=24, forward=50, centered=54, hold=30)
     h_start, h_end = 0.45, 0.012
     trace_h = np.exp(np.linspace(np.log(h_start), np.log(h_end), 120))
@@ -353,7 +334,6 @@ def parabola_area_gif():
             trace_panel(k, 0)
             return
 
-        # centered: one sliver on each side of x
         k = max(1, int(ease(t) * (len(trace_h) - 1)) + 1) if phase == "centered" else len(trace_h)
         h = trace_h[k - 1]
         ax.add_patch(Rectangle((x0 - h, 0), 2 * h, x0 ** 2, color=HIGHLIGHT, alpha=0.9, zorder=3))
@@ -381,12 +361,10 @@ def parabola_area_gif():
     save_gif(fig, draw, total, "area_under_x2.gif")
 
 
-# >> 3. x^2 is a square: why the centered nudge leaves no h^2 behind
-
 def square_gif():
     x, h = 3.0, 0.6
     which, total = phases(intro=14, grow=42, reset=12, centered=30, fly=26, balance=30, hold=34)
-    bench = np.array([4.8, 0.0])  # where the strips get laid out side by side
+    bench = np.array([4.8, 0.0])
 
     fig, ov = notebook()
     ax = fig.add_axes([0.02, 0.05, 0.96, 0.78])
@@ -413,9 +391,9 @@ def square_gif():
             write(ax, x * s / 2 - 0.25, x * s / 2 - 0.15, "$x^2$", size=22)
             side_labels(x * s)
         if phase == "grow":
-            a = ease(t * 3)  # right strip slides in
-            b = ease(t * 3 - 1)    # top strip slides down
-            c = ease(t * 3 - 2) # the corner pops in
+            a = ease(t * 3)
+            b = ease(t * 3 - 1)
+            c = ease(t * 3 - 2)
             tile(rect(x + 3 * (1 - a), 0, h, x), GREEN)
             tile(rect(0, x + 2 * (1 - b), x, h), GREEN)
             if c > 0:
@@ -444,9 +422,8 @@ def square_gif():
             write(ax, inner / 2 - 0.55, inner / 2 - 0.1, "$(x-h)^2$", size=18)
             side_labels(x)
 
-            # the two strips that make up (x+h)^2 - (x-h)^2
-            long_home = rect(inner, 0, 2 * h, x + h)  # vertical: 2h wide, x+h tall
-            short_home = rect(0, inner, inner, 2 * h)	# horizontal: x-h long, 2h tall
+            long_home = rect(inner, 0, 2 * h, x + h)
+            short_home = rect(0, inner, inner, 2 * h)
             long_bench = np.array([[bench[0], 2.5], [bench[0], 2.5 + 2 * h],
                                    [bench[0] + x + h, 2.5 + 2 * h], [bench[0] + x + h, 2.5]])
             short_bench = rect(bench[0], 0.7, inner, 2 * h)
@@ -472,7 +449,6 @@ def square_gif():
                     write(ax, bench[0] + inner + 0.15, 0.95, "$x-h$: h too short", size=14, color="#b8860b")
                 return
 
-            # balance: cut h off the long strip and move it onto the short one
             mv = ease(t * 1.6) if phase == "balance" else 1
             tile(rect(bench[0], 2.5, x, 2 * h), HIGHLIGHT, alpha=0.95)
             tile(short_bench, HIGHLIGHT, alpha=0.95)
@@ -490,13 +466,11 @@ def square_gif():
     save_gif(fig, draw, total, "square_x2.gif")
 
 
-# >> 4. the gradient: a hiker feeling for uphill, one direction at a time
-
 def gradient_gif():
     f = lambda x, y: 4 - 0.5 * x ** 2 - 1.5 * y ** 2
     grad_f = lambda q: np.array([-q[0], -3 * q[1]])
     p = np.array([2.0, 0.85])
-    h_show = 0.38  # big enough to see; the printed numbers use h = 1e-5
+    h_show = 0.38
 
     def num_partial(q, i, h=1e-5):
         e = np.zeros(2)
@@ -507,7 +481,6 @@ def gradient_gif():
     true_grad = grad_f(p)
     rel_error = np.max(np.abs(num_grad - true_grad) / np.maximum(np.abs(num_grad), np.abs(true_grad)))
 
-    # a few uphill steps, each one along the gradient
     path = [p.copy()]
     for _ in range(9):
         path.append(path[-1] + 0.22 * grad_f(path[-1]))
@@ -537,7 +510,6 @@ def gradient_gif():
         ax.clabel(lines, levels[::2], fontsize=8, fmt="%.0f", colors="#7a5234")
         ax.add_patch(pen(Rectangle((-3.2, -2.1), 6.4, 4.2, fill=False, edgecolor=INK, linewidth=1.4, zorder=3)))
 
-        # compass and summit flag
         arrow(ax, (-2.75, -1.75), (-2.75, -1.2), width=1.4, head=10)
         arrow(ax, (-2.75, -1.75), (-2.2, -1.75), width=1.4, head=10)
         write(ax, -2.83, -1.12, "N", size=11)
@@ -546,7 +518,6 @@ def gradient_gif():
         ax.add_patch(Polygon([[0, 0.42], [0.28, 0.33], [0, 0.24]], color=PINK, zorder=6))
         write(ax, 0.08, -0.25, "summit", size=11, color="#7a5234")
 
-        # the hiker
         here = path[0] if phase not in ("climb", "hold") else path[min(int(ease(t) * (len(path) - 1)) if phase == "climb" else len(path) - 1, len(path) - 1)]
         ax.plot(*here, "o", color=INK, markersize=11, markeredgecolor="white", markeredgewidth=2, zorder=9)
         if phase == "intro":
@@ -589,7 +560,6 @@ def gradient_gif():
             pen(ax.plot(path[:n, 0], path[:n, 1], color=PINK, linewidth=2, linestyle="--", zorder=7)[0])
             ax.plot(path[:n, 0], path[:n, 1], "o", color=PINK, markersize=4, zorder=7)
 
-        # the code, with the line that is running highlighted
         blank(side, (0, 1), (0, 1))
         code = ["def numerical_gradient(f, x, h=1e-5):",
                 "    for i in range(len(x)):",
@@ -626,10 +596,8 @@ def gradient_gif():
     save_gif(fig, draw, total, "gradient_2d.gif")
 
 
-# >> 5. how small should h be?
-
 def error_vs_h_png():
-    x, true = 1.0, np.cos(1.0)  # f = sin, so f'(1) = cos(1)
+    x, true = 1.0, np.cos(1.0)
     hs = np.logspace(-13, -0.3, 300)
     forward = np.abs((np.sin(x + hs) - np.sin(x)) / hs - true)
     centered = np.abs((np.sin(x + hs) - np.sin(x - hs)) / (2 * hs) - true)

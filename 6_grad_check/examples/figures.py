@@ -1,5 +1,3 @@
-# run from 6_grad_check:  python3 examples/figures.py
-# figures for the readme, built on top of grad_check (nothing in here is part of the task code)
 import os
 import sys
 
@@ -11,7 +9,7 @@ from matplotlib.colors import LogNorm
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from grad_check import numerical_gradient, forward, cross_entropy_loss, analytical_gradient_W
-from run_all import setup   # same X, W, y_true as run_all (seed 42)
+from run_all import setup
 
 FIGURES = os.path.join(os.path.dirname(__file__), "..", "figures")
 RED, GREEN, BLUE, GRAY = "#d62828", "#2a9d3f", "steelblue", "#8d99ae"
@@ -34,7 +32,6 @@ def both_grads(X, W, y_true, h=1e-5):
     return ana, num
 
 
-# 1. what probs - y_true actually says, for one sample
 def gradient_intuition(X, W, y_true, i=0):
     probs, z = forward(X, W)
     z, p, y = z[i], probs[i], y_true[i]
@@ -50,7 +47,7 @@ def gradient_intuition(X, W, y_true, i=0):
     for ax, (vals, title, ylabel) in zip(axes, panels):
         colors = [GRAY] * len(vals)
         colors[true_c] = BLUE
-        if "gradient" in title:   # sign is what matters here
+        if "gradient" in title:
             colors = [GREEN if v < 0 else RED for v in vals]
         ax.bar(classes, vals, color=colors, edgecolor="black", linewidth=0.6)
         ax.axhline(0, color="black", linewidth=0.8)
@@ -58,14 +55,13 @@ def gradient_intuition(X, W, y_true, i=0):
             ax.annotate(f"{v:+.2f}" if "gradient" in title else f"{v:.2f}",
                         xy=(k, v), xytext=(0, 4 if v >= 0 else -12),
                         textcoords="offset points", ha="center", fontsize=9)
-        ax.margins(y=0.18)   # room for the value labels
+        ax.margins(y=0.18)
         ax.set_title(title)
         ax.set_ylabel(ylabel)
         ax.grid(True, axis="y", alpha=0.3)
 
     axes[1].set_ylim(0, 1.05)
     axes[1].text(true_c, 1.0, "true class", ha="center", color=BLUE, fontsize=9)
-    # how gradient descent reads the last panel
     axes[2].text(0.03, 0.96, "green < 0: descent pushes this score up\nred > 0: descent pushes it down",
                  transform=axes[2].transAxes, fontsize=8.5, color="#333", va="top")
 
@@ -75,14 +71,12 @@ def gradient_intuition(X, W, y_true, i=0):
     plt.close(fig)
 
 
-# 2. did the check pass? every entry of dL/dW, analytical vs numerical
 def check_result(X, W, y_true):
     ana, num = both_grads(X, W, y_true)
     err = rel_error(ana, num)
 
     fig, (left, right) = plt.subplots(1, 2, figsize=(12, 4.8))
 
-    # left: all 12 entries should sit on y = x
     lim = 1.1 * max(np.abs(ana).max(), np.abs(num).max())
     left.plot([-lim, lim], [-lim, lim], "--", color=GRAY, linewidth=1, label="y = x (perfect match)")
     left.scatter(ana.ravel(), num.ravel(), s=60, color=BLUE, edgecolor="black", zorder=3, label="entries of dL/dW")
@@ -95,7 +89,6 @@ def check_result(X, W, y_true):
     left.legend(loc="upper left", fontsize=9)
     left.grid(True, alpha=0.3)
 
-    # right: relative error per entry, colored by how close the two are
     im = right.imshow(err, cmap="RdYlGn_r", norm=LogNorm(vmin=1e-10, vmax=1e-2))
     for (r, c), v in np.ndenumerate(err):
         right.text(c, r, f"{v:.0e}", ha="center", va="center", fontsize=9)
@@ -113,17 +106,15 @@ def check_result(X, W, y_true):
     plt.close(fig)
 
 
-# 3. choosing h: sweep it on the real softmax loss
 def h_sweep(X, W, y_true):
     hs = np.logspace(-1, -12, 45)
     errs = [rel_error(*both_grads(X, W, y_true, h=h)).max() for h in hs]
 
     fig, ax = plt.subplots(figsize=(8.5, 5))
-    # verdict zones
     ax.axhspan(1e-20, 1e-7, color=GREEN, alpha=0.08)
     ax.axhspan(1e-7, 1e-5, color="#f4d35e", alpha=0.15)
     ax.axhspan(1e-3, 1e3, color=RED, alpha=0.08)
-    zone = ax.get_yaxis_transform()   # x in axes coords, y in data
+    zone = ax.get_yaxis_transform()
     ax.text(0.02, 3e-9, "excellent  < 1e-7", transform=zone, fontsize=9, color=GREEN)
     ax.text(0.02, 2.2e-6, "acceptable", transform=zone, fontsize=9, color="#a07c00")
     ax.text(0.02, 2e-1, "almost certainly a bug  > 1e-3", transform=zone, fontsize=9, color=RED)
@@ -137,7 +128,7 @@ def h_sweep(X, W, y_true):
     ax.annotate("too small: float round-off\ntakes over", xy=(hs[-8], errs[-8]), xytext=(3e-10, 3e-8),
                 fontsize=9, arrowprops=dict(arrowstyle="->", color="#333"))
 
-    ax.invert_xaxis()   # read left to right as h shrinks
+    ax.invert_xaxis()
     ax.set_ylim(1e-9, 1)
     ax.set_xlabel("step size h (shrinking ->)")
     ax.set_ylabel("max relative error over dL/dW")
